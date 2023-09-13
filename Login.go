@@ -4,42 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"gopkg.in/mgo.v2/bson"
 )
 
-func createToken(user User) (string, error) {
-	token := jwt.New(jwt.SigningMethodHS256)
-	claims := token.Claims.(jwt.MapClaims)
-	claims["username"] = user.Username
-	claims["exp"] = time.Now().Add(time.Hour).Unix()
-
-	tokenString, err := token.SignedString([]byte("user-unique-token"))
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
-}
-
 func Login(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != "POST" {
+	if r.Method != "GET" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	err := r.ParseForm()
-	if err != nil {
-		http.Error(w, "Error parsing form", http.StatusInternalServerError)
-		return
-	}
-
-	username := r.FormValue("username")
-	email := r.FormValue("email")
-	password := r.FormValue("password")
+	username := r.URL.Query().Get("username")
+	email := r.URL.Query().Get("email")
+	password := r.URL.Query().Get("password")
 
 	expectedKeysToLogin := []string{"email", "password", "username"}
 
@@ -91,18 +69,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString, err := createToken(user)
+	tokenString, err := GenerateJWT(username)
 	if err != nil {
 		http.Error(w, "Error generating token", http.StatusInternalServerError)
-		return
-	}
-
-	user.LoginToken = tokenString
-
-	update := bson.M{"$set": bson.M{"LoginToken": tokenString}}
-	_, err = collection.UpdateOne(context.TODO(), filter, update)
-	if err != nil {
-		http.Error(w, "Error updating login token in database", http.StatusInternalServerError)
 		return
 	}
 

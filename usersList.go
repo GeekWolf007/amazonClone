@@ -15,18 +15,11 @@ func ShowAllUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseForm()
-	if err != nil {
-		http.Error(w, "Error parsing form", http.StatusInternalServerError)
-		return
-	}
-
 	username := r.URL.Query().Get("username")
 	email := r.URL.Query().Get("email")
 	password := r.URL.Query().Get("password")
-	login_token := r.URL.Query().Get("login_token")
 
-	expectedKeysToDelete := []string{"email", "password", "username", "login_token"}
+	expectedKeysToDelete := []string{"email", "password", "username"}
 
 	for key := range r.Form {
 		if !contains(expectedKeysToDelete, key) {
@@ -47,11 +40,6 @@ func ShowAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	if password == "" {
 		http.Error(w, "Password field is missing", http.StatusBadRequest)
-		return
-	}
-
-	if login_token == "" {
-		http.Error(w, "Login token is missing", http.StatusBadRequest)
 		return
 	}
 
@@ -78,11 +66,6 @@ func ShowAllUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	if password != user.Password {
 		http.Error(w, "Incorrect password", http.StatusBadRequest)
-		return
-	}
-
-	if login_token != user.LoginToken {
-		http.Error(w, "Incorrect login token", http.StatusBadRequest)
 		return
 	}
 

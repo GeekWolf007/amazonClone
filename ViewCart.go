@@ -15,14 +15,7 @@ func ViewCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseForm()
-	if err != nil {
-		http.Error(w, "Error parsing form", http.StatusInternalServerError)
-		return
-	}
-
 	username := r.URL.Query().Get("username")
-	login_token := r.URL.Query().Get("login_token")
 
 	expectedKeysToAddToCart := []string{"login_token", "username"}
 
@@ -37,10 +30,6 @@ func ViewCart(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Username field is missing", http.StatusBadRequest)
 		return
 	}
-	if login_token == "" {
-		http.Error(w, "Login token is missing", http.StatusBadRequest)
-		return
-	}
 
 	var filter_username bson.M
 	var user User
@@ -53,10 +42,6 @@ func ViewCart(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Username is not registered", http.StatusBadRequest)
 			return
 		}
-	}
-	if login_token != user.LoginToken {
-		http.Error(w, "Incorrect login token", http.StatusBadRequest)
-		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -36,12 +36,14 @@ func ViewProducts(w http.ResponseWriter, r *http.Request) {
 				ProductName:        "Default Product 1",
 				ProductPrice:       100,
 				ProductDescription: "Description for Default Product 1",
+				CreatedBy:          "defaultProductCreator",
 			},
 			Product{
 				ID:                 product_id2,
 				ProductName:        "Default Product 2",
 				ProductPrice:       200,
 				ProductDescription: "Description for Default Product 2",
+				CreatedBy:          "defaultProductCreator",
 			},
 		}
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -22,7 +23,7 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expectedKeysToAddProduct := []string{"username", "login_token", "password", "product_name", "product_price", "product_description"}
+	expectedKeysToAddProduct := []string{"username", "password", "product_name", "product_price", "product_description"}
 
 	for key := range r.Form {
 		if !contains(expectedKeysToAddProduct, key) {
@@ -32,7 +33,6 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	username := r.FormValue("username")
-	loginToken := r.FormValue("login_token")
 	password := r.FormValue("password")
 	productName := r.FormValue("product_name")
 	productPrice := r.FormValue("product_price")
@@ -40,7 +40,6 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 
 	requiredFields := map[string]string{
 		"username":           username,
-		"loginToken":         loginToken,
 		"password":           password,
 		"productName":        productName,
 		"productPrice":       productPrice,
@@ -73,11 +72,6 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if loginToken != user.LoginToken {
-		http.Error(w, "Incorrect login token", http.StatusBadRequest)
-		return
-	}
-
 	productPriceInt, err := strconv.Atoi(productPrice)
 	if err != nil {
 		http.Error(w, "Error converting product price to integer", http.StatusInternalServerError)
@@ -89,6 +83,7 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 		ProductName:        productName,
 		ProductPrice:       productPriceInt,
 		ProductDescription: productDescription,
+		CreatedBy:          username,
 	}
 
 	_, err = collectionProduct.InsertOne(context.TODO(), product)
@@ -97,5 +92,6 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println(username)
 	w.Write([]byte("Product added successfully"))
 }

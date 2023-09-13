@@ -15,18 +15,11 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseForm()
-	if err != nil {
-		http.Error(w, "Error parsing form", http.StatusInternalServerError)
-		return
-	}
+	username := r.URL.Query().Get("username")
+	email := r.URL.Query().Get("email")
+	password := r.URL.Query().Get("password")
 
-	username := r.FormValue("username")
-	email := r.FormValue("email")
-	password := r.FormValue("password")
-	login_token := r.FormValue("login_token")
-
-	expectedKeysToDelete := []string{"email", "password", "username", "login_token"}
+	expectedKeysToDelete := []string{"email", "password", "username"}
 
 	for key := range r.Form {
 		if !contains(expectedKeysToDelete, key) {
@@ -47,11 +40,6 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	if password == "" {
 		http.Error(w, "Password field is missing", http.StatusBadRequest)
-		return
-	}
-
-	if login_token == "" {
-		http.Error(w, "Login token is missing", http.StatusBadRequest)
 		return
 	}
 
@@ -81,12 +69,6 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if login_token != user.LoginToken {
-		http.Error(w, "Incorrect login token", http.StatusBadRequest)
-		return
-	}
-
-	fmt.Println("User to be deleted: ", user)
 	deleteFilter := bson.M{"username": user.Username}
 	_, deleteErr := collection.DeleteOne(context.TODO(), deleteFilter)
 

@@ -4,48 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"regexp"
 
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/mgo.v2/bson"
 )
-
-var client *mongo.Client
-
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
-func isValidEmail(email string) bool {
-	regex := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
-	match, _ := regexp.MatchString(regex, email)
-	return match
-}
-func isValidPhoneNumber(phone string) bool {
-	regex := `^\d{10}$`
-	match, _ := regexp.MatchString(regex, phone)
-	return match
-}
-
-func initDB() {
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
-	var err error
-	client, err = mongo.Connect(context.Background(), clientOptions)
-	if err != nil {
-		panic(err)
-	}
-
-	err = client.Ping(context.Background(), nil)
-	if err != nil {
-		panic(err)
-	}
-}
 
 func Signup(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
@@ -133,13 +95,11 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := User{
-		Email:      email,
-		Password:   password,
-		Username:   username,
-		Phone:      phone,
-		IsLogged:   false,
-		IsAdmin:    isAdmin,
-		LoginToken: "",
+		Email:    email,
+		Password: password,
+		Username: username,
+		Phone:    phone,
+		IsAdmin:  isAdmin,
 	}
 
 	_, err = collection.InsertOne(context.Background(), user)

@@ -23,10 +23,9 @@ func AddToCart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	username := r.FormValue("username")
-	login_token := r.FormValue("login_token")
 	product_id := r.FormValue("product_id")
 
-	expectedKeysToAddToCart := []string{"product_id", "login_token", "username"}
+	expectedKeysToAddToCart := []string{"product_id", "username"}
 
 	for key := range r.Form {
 		if !contains(expectedKeysToAddToCart, key) {
@@ -39,10 +38,7 @@ func AddToCart(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Username field is missing", http.StatusBadRequest)
 		return
 	}
-	if login_token == "" {
-		http.Error(w, "Login token is missing", http.StatusBadRequest)
-		return
-	}
+
 	if product_id == "" {
 		http.Error(w, "Product id is missing", http.StatusBadRequest)
 		return
@@ -63,10 +59,6 @@ func AddToCart(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Username is not registered", http.StatusBadRequest)
 			return
 		}
-	}
-	if login_token != user.LoginToken {
-		http.Error(w, "Incorrect login token", http.StatusBadRequest)
-		return
 	}
 
 	if product_id != "" {
