@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/google/uuid"
 	"gopkg.in/mgo.v2/bson"
@@ -17,13 +17,27 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseForm()
+	var requestBody map[string]interface{}
+	err := json.NewDecoder(r.Body).Decode(&requestBody)
 	if err != nil {
-		http.Error(w, "Error parsing form", http.StatusInternalServerError)
+		http.Error(w, "Error decoding request body", http.StatusInternalServerError)
 		return
 	}
 
-	expectedKeysToAddProduct := []string{"username", "password", "product_name", "product_price", "product_description"}
+	if r.Header["Token"] == nil {
+		var err Error
+		err = SetError(err, "No Token Found")
+		json.NewEncoder(w).Encode(err)
+		return
+	}
+
+	token := r.Header["Token"]
+	username, err := ExtractUsernameFromJWT(token[0])
+	if err != nil {
+		http.Error(w, "Error extracting username from JWT", http.StatusInternalServerError)
+	}
+
+	expectedKeysToAddProduct := []string{"product_name", "product_price", "product_description"}
 
 	for key := range r.Form {
 		if !contains(expectedKeysToAddProduct, key) {
@@ -32,26 +46,9 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	username := r.FormValue("username")
-	password := r.FormValue("password")
-	productName := r.FormValue("product_name")
-	productPrice := r.FormValue("product_price")
-	productDescription := r.FormValue("product_description")
-
-	requiredFields := map[string]string{
-		"username":           username,
-		"password":           password,
-		"productName":        productName,
-		"productPrice":       productPrice,
-		"productDescription": productDescription,
-	}
-
-	for field, value := range requiredFields {
-		if value == "" {
-			http.Error(w, field+" is required", http.StatusBadRequest)
-			return
-		}
-	}
+	productName := requestBody["product_name"].(string)
+	productPrice := requestBody["product_price"].(float64)
+	productDescription := requestBody["product_description"].(string)
 
 	var filter_username bson.M
 	var user User
@@ -67,21 +64,10 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if password != user.Password {
-		http.Error(w, "Incorrect password", http.StatusBadRequest)
-		return
-	}
-
-	productPriceInt, err := strconv.Atoi(productPrice)
-	if err != nil {
-		http.Error(w, "Error converting product price to integer", http.StatusInternalServerError)
-		return
-	}
-
 	product := Product{
 		ID:                 uuid.New().String(),
 		ProductName:        productName,
-		ProductPrice:       productPriceInt,
+		ProductPrice:       productPrice,
 		ProductDescription: productDescription,
 		CreatedBy:          username,
 	}

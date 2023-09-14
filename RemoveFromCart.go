@@ -15,21 +15,28 @@ func RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := r.URL.Query().Get("username")
+	if r.Header["Token"] == nil {
+		var err Error
+		err = SetError(err, "No Token Found")
+		json.NewEncoder(w).Encode(err)
+		return
+	}
+
+	token := r.Header["Token"]
+	username, err := ExtractUsernameFromJWT(token[0])
+	if err != nil {
+		http.Error(w, "Error extracting username from JWT", http.StatusInternalServerError)
+	}
+
 	product_id := r.URL.Query().Get("product_id")
 
-	expectedKeysToAddToCart := []string{"product_id", "username"}
+	expectedKeysToAddToCart := []string{"product_id"}
 
 	for key := range r.Form {
 		if !contains(expectedKeysToAddToCart, key) {
 			http.Error(w, "Unexpected key in form data: "+key, http.StatusBadRequest)
 			return
 		}
-	}
-
-	if username == "" {
-		http.Error(w, "Username field is missing", http.StatusBadRequest)
-		return
 	}
 
 	if product_id == "" {

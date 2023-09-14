@@ -15,20 +15,18 @@ func ViewCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := r.URL.Query().Get("username")
-
-	expectedKeysToAddToCart := []string{"login_token", "username"}
-
-	for key := range r.Form {
-		if !contains(expectedKeysToAddToCart, key) {
-			http.Error(w, "Unexpected key in form data: "+key, http.StatusBadRequest)
-			return
-		}
+	if r.Header["Token"] == nil {
+		var err Error
+		err = SetError(err, "No Token Found")
+		json.NewEncoder(w).Encode(err)
+		return
 	}
 
-	if username == "" {
-		http.Error(w, "Username field is missing", http.StatusBadRequest)
-		return
+	token := r.Header["Token"]
+	username, err := ExtractUsernameFromJWT(token[0])
+
+	if err != nil {
+		http.Error(w, "Error extracting username from JWT", http.StatusInternalServerError)
 	}
 
 	var filter_username bson.M

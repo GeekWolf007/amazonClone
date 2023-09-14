@@ -10,16 +10,22 @@ import (
 
 func Login(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != "GET" {
+	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	username := r.URL.Query().Get("username")
-	email := r.URL.Query().Get("email")
-	password := r.URL.Query().Get("password")
+	var requestBody map[string]interface{}
+	err := json.NewDecoder(r.Body).Decode(&requestBody)
+	if err != nil {
+		http.Error(w, "Error decoding request body", http.StatusInternalServerError)
+		return
+	}
 
-	expectedKeysToLogin := []string{"email", "password", "username"}
+	password := requestBody["password"].(string)
+	username := requestBody["username"].(string)
+
+	expectedKeysToLogin := []string{"password", "username"}
 
 	for key := range r.Form {
 		if !contains(expectedKeysToLogin, key) {
@@ -28,13 +34,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if username == "" && email == "" {
-		http.Error(w, "Either username or email is required", http.StatusBadRequest)
-		return
-	}
-
-	if username != "" && email != "" {
-		http.Error(w, "Enter either username or email", http.StatusBadRequest)
+	if username == "" {
+		http.Error(w, "Username is missing!", http.StatusBadRequest)
 		return
 	}
 
@@ -56,14 +57,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if email != "" {
-		filter = bson.M{"email": email}
-		error_email := collection.FindOne(context.Background(), filter).Decode(&user)
-		if error_email != nil {
-			http.Error(w, "Email is not registered", http.StatusBadRequest)
-			return
-		}
-	}
+
 	if password != user.Password {
 		http.Error(w, "Incorrect password", http.StatusBadRequest)
 		return

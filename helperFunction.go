@@ -64,3 +64,24 @@ func GenerateJWT(username string) (string, error) {
 	}
 	return tokenString, nil
 }
+
+func ExtractUsernameFromJWT(tokenString string) (string, error) {
+	mySigningKey := []byte("secretkey")
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return mySigningKey, nil
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		username := claims["username"].(string)
+		return username, nil
+	} else {
+		return "", fmt.Errorf("invalid token")
+	}
+}

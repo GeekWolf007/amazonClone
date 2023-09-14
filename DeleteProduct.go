@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"gopkg.in/mgo.v2/bson"
@@ -25,13 +26,22 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	username := r.URL.Query().Get("username")
-	password := r.URL.Query().Get("password")
+	if r.Header["Token"] == nil {
+		var err Error
+		err = SetError(err, "No Token Found")
+		json.NewEncoder(w).Encode(err)
+		return
+	}
+
+	token := r.Header["Token"]
+	username, err := ExtractUsernameFromJWT(token[0])
+	if err != nil {
+		http.Error(w, "Error extracting username from JWT", http.StatusInternalServerError)
+	}
+
 	productID := r.URL.Query().Get("product_id")
 
 	requiredFields := map[string]string{
-		"username":  username,
-		"password":  password,
 		"productID": productID,
 	}
 
@@ -56,11 +66,6 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Username is not registered", http.StatusBadRequest)
 			return
 		}
-	}
-
-	if password != user.Password {
-		http.Error(w, "Incorrect password", http.StatusBadRequest)
-		return
 	}
 
 	if productID != "" {

@@ -15,13 +15,14 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseForm()
+	var requestBody map[string]interface{}
+	err := json.NewDecoder(r.Body).Decode(&requestBody)
 	if err != nil {
-		http.Error(w, "Error parsing form", http.StatusInternalServerError)
+		http.Error(w, "Error decoding request body", http.StatusInternalServerError)
 		return
 	}
 
-	expectedKeysToSignup := []string{"email", "password", "username", "phone", "isAdmin"}
+	expectedKeysToSignup := []string{"email", "password", "username", "phone"}
 
 	for key := range r.Form {
 		if !contains(expectedKeysToSignup, key) {
@@ -30,21 +31,19 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	email := r.FormValue("email")
-	password := r.FormValue("password")
-	username := r.FormValue("username")
-	phone := r.FormValue("phone")
-	isAdminValue := r.FormValue("isAdmin")
+	email := requestBody["email"].(string)
+	password := requestBody["password"].(string)
+	username := requestBody["username"].(string)
+	phone := requestBody["phone"].(string)
+	isAdminValue, ok := requestBody["isAdmin"].(string)
 
 	var isAdmin bool
 
-	if isAdminValue == "adminpass" {
-		isAdmin = true
-	} else if isAdminValue == "" {
+	if !ok || (isAdminValue != "adminpass" && isAdminValue != "") {
+		http.Error(w, "Admin Password missing or not correct , creating normal user!", http.StatusBadRequest)
 		isAdmin = false
 	} else {
-		http.Error(w, "Invalid admin password, creating normal user", http.StatusBadRequest)
-		isAdmin = false
+		isAdmin = true
 	}
 
 	if email == "" || password == "" || username == "" || phone == "" {

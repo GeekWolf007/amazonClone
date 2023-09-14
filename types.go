@@ -15,9 +15,9 @@ type CartItem struct {
 }
 
 type Product struct {
-	ID                 string `json:"id" bson:"id"`
-	ProductName        string `json:"product_name"`
-	ProductPrice       int    `json:"product_price"`
-	ProductDescription string `json:"product_description"`
-	CreatedBy          string `json:"created_by"`
+	ID                 string  `json:"id" bson:"id"`
+	ProductName        string  `json:"product_name"`
+	ProductPrice       float64 `json:"product_price"`
+	ProductDescription string  `json:"product_description"`
+	CreatedBy          string  `json:"created_by"`
 }
