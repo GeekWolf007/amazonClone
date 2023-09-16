@@ -17,8 +17,17 @@ func SetError(err Error, message string) Error {
 	return err
 }
 
-func IsAuthorized(handler http.HandlerFunc) http.HandlerFunc {
+type contextKey string
+
+func IsAuthorized(method string, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Method != method {
+			var err Error
+			err = SetError(err, "Method not allowed")
+			json.NewEncoder(w).Encode(err)
+			return
+		}
 
 		if r.Header["Token"] == nil {
 			var err Error
@@ -48,8 +57,8 @@ func IsAuthorized(handler http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		var reserr Error
-		reserr = SetError(reserr, "Not Authorized")
-		json.NewEncoder(w).Encode(reserr)
+		var error Error
+		error = SetError(error, "Not Authorized")
+		json.NewEncoder(w).Encode(error)
 	}
 }

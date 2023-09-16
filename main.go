@@ -37,14 +37,14 @@ func main() {
 
 	mux.HandleFunc("/user/signup", Signup)
 	mux.HandleFunc("/user/login", Login)
-	mux.HandleFunc("/user/delete", IsAuthorized(deleteUser))
-	mux.HandleFunc("/allusers", IsAuthorized(ShowAllUsers))
+	mux.HandleFunc("/user/delete", IsAuthorized("DELETE", filterUser(deleteUser)))
+	mux.HandleFunc("/allusers", IsAuthorized("POST", filterUser(ShowAllUsers)))
 	mux.HandleFunc("/products/viewall", ViewProducts)
-	mux.HandleFunc("/products/add", IsAuthorized(AddProduct))
-	mux.HandleFunc("/products/delete", IsAuthorized(DeleteProduct))
-	mux.HandleFunc("/cart", IsAuthorized(ViewCart))
-	mux.HandleFunc("/cart/add", IsAuthorized(AddToCart))
-	mux.HandleFunc("/cart/remove", IsAuthorized(RemoveFromCart))
+	mux.HandleFunc("/products/add", IsAuthorized("POST", filterUser(AddProduct)))
+	mux.HandleFunc("/products/delete", IsAuthorized("DELETE", filterProduct(filterUser(DeleteProduct))))
+	mux.HandleFunc("/cart", IsAuthorized("GET", filterUser(ViewCart)))
+	mux.HandleFunc("/cart/add", IsAuthorized("POST", filterProduct(filterUser(AddToCart))))
+	mux.HandleFunc("/cart/remove", IsAuthorized("DELETE", filterProduct(filterUser(RemoveFromCart))))
 
 	err := http.ListenAndServe(":8000", mux)
 	if err != nil {

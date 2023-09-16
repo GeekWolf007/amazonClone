@@ -1,5 +1,5 @@
 build:
-	@go build -o bin/golang_BANK
+	@go build -o bin/golang_amazon
 
 run: build
-	@./bin/golang_BANK
+	@./bin/golang_amazon

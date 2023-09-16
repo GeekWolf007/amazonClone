@@ -4,16 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-
-	"go.mongodb.org/mongo-driver/mongo"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func Signup(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
 
 	var requestBody map[string]interface{}
 	err := json.NewDecoder(r.Body).Decode(&requestBody)
@@ -22,13 +15,10 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expectedKeysToSignup := []string{"email", "password", "username", "phone"}
-
-	for key := range r.Form {
-		if !contains(expectedKeysToSignup, key) {
-			http.Error(w, "Unexpected key in form data: "+key, http.StatusBadRequest)
-			return
-		}
+	mandatoryFields := []string{"email", "password", "username", "phone"}
+	if err := checkMandatoryFields(mandatoryFields, requestBody); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	email := requestBody["email"].(string)
@@ -37,18 +27,9 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	phone := requestBody["phone"].(string)
 	isAdminValue, ok := requestBody["isAdmin"].(string)
 
-	var isAdmin bool
-
-	if !ok || (isAdminValue != "adminpass" && isAdminValue != "") {
-		http.Error(w, "Admin Password missing or not correct , creating normal user!", http.StatusBadRequest)
-		isAdmin = false
-	} else {
+	var isAdmin bool = false
+	if ok && isAdminValue == "adminpass" {
 		isAdmin = true
-	}
-
-	if email == "" || password == "" || username == "" || phone == "" {
-		http.Error(w, "Email, password, phone and username are required", http.StatusBadRequest)
-		return
 	}
 
 	if !isValidEmail(email) {
@@ -62,34 +43,9 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 
 	collection := client.Database("amazon_db").Collection("users")
 
-	filter := bson.M{"email": email}
-	var existingUser map[string]interface{}
-	err = collection.FindOne(context.Background(), filter).Decode(&existingUser)
-	if err == nil {
-		http.Error(w, "Email is already registered", http.StatusBadRequest)
-		return
-	} else if err != mongo.ErrNoDocuments {
-		http.Error(w, "Error checking email availability: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	filter = bson.M{"phone": phone}
-	err = collection.FindOne(context.Background(), filter).Decode(&existingUser)
-	if err == nil {
-		http.Error(w, "Phone number is already registered", http.StatusBadRequest)
-		return
-	} else if err != mongo.ErrNoDocuments {
-		http.Error(w, "Error checking phone number availability: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	filter = bson.M{"username": username}
-	err = collection.FindOne(context.Background(), filter).Decode(&existingUser)
-	if err == nil {
-		http.Error(w, "username number is already registered", http.StatusBadRequest)
-		return
-	} else if err != mongo.ErrNoDocuments {
-		http.Error(w, "Error checking username number availability: "+err.Error(), http.StatusInternalServerError)
+	if checkDuplicate("email", email, w, collection) ||
+		checkDuplicate("phone", phone, w, collection) ||
+		checkDuplicate("username", username, w, collection) {
 		return
 	}
 

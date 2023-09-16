@@ -3,24 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"regexp"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var client *mongo.Client
-
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
 
 func isValidEmail(email string) bool {
 	regex := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
@@ -31,6 +24,27 @@ func isValidPhoneNumber(phone string) bool {
 	regex := `^\d{10}$`
 	match, _ := regexp.MatchString(regex, phone)
 	return match
+}
+func checkMandatoryFields(fields []string, requestBody map[string]interface{}) error {
+	for _, field := range fields {
+		if val, ok := requestBody[field]; !ok || val == "" {
+			return fmt.Errorf("%s is required", field)
+		}
+	}
+	return nil
+}
+func checkDuplicate(field, value string, w http.ResponseWriter, collection *mongo.Collection) bool {
+	filter := bson.M{field: value}
+	var existingUser map[string]interface{}
+	err := collection.FindOne(context.Background(), filter).Decode(&existingUser)
+	if err == nil {
+		http.Error(w, field+" is already registered", http.StatusBadRequest)
+		return true
+	} else if err != mongo.ErrNoDocuments {
+		http.Error(w, "Error checking "+field+" availability: "+err.Error(), http.StatusInternalServerError)
+		return true
+	}
+	return false
 }
 
 func initDB() {

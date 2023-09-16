@@ -10,52 +10,24 @@ import (
 
 func ShowAllUsers(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	if r.Header["Token"] == nil {
-		var err Error
-		err = SetError(err, "No Token Found")
-		json.NewEncoder(w).Encode(err)
-		return
-	}
-
-	token := r.Header["Token"]
-	username, err := ExtractUsernameFromJWT(token[0])
-	if err != nil {
-		http.Error(w, "Error extracting username from JWT", http.StatusInternalServerError)
-	}
-
 	collection := client.Database("amazon_db").Collection("users")
 
-	var filter bson.M
-	var user User
-
-	if username != "" {
-		filter = bson.M{"username": username}
-		error_name := collection.FindOne(context.TODO(), filter).Decode(&user)
-		if error_name != nil {
-			http.Error(w, "Username is not registered", http.StatusBadRequest)
-			return
-		}
-	}
+	user := r.Context().Value(userKey).(User)
 
 	if !user.IsAdmin {
 		http.Error(w, "You are not an admin", http.StatusBadRequest)
 		return
 	}
 
-	cursor, err := collection.Find(context.TODO(), bson.M{})
+	users_list, err := collection.Find(context.TODO(), bson.M{})
 	if err != nil {
 		http.Error(w, "Error fetching users", http.StatusInternalServerError)
 		return
 	}
-	defer cursor.Close(context.TODO())
+	defer users_list.Close(context.TODO())
 
 	var users []User
-	if err := cursor.All(context.TODO(), &users); err != nil {
+	if err := users_list.All(context.TODO(), &users); err != nil {
 		http.Error(w, "Error decoding users", http.StatusInternalServerError)
 		return
 	}

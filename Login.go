@@ -25,15 +25,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	password := requestBody["password"].(string)
 	username := requestBody["username"].(string)
 
-	expectedKeysToLogin := []string{"password", "username"}
-
-	for key := range r.Form {
-		if !contains(expectedKeysToLogin, key) {
-			http.Error(w, "Unexpected key in form data: "+key, http.StatusBadRequest)
-			return
-		}
-	}
-
 	if username == "" {
 		http.Error(w, "Username is missing!", http.StatusBadRequest)
 		return
